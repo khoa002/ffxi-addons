@@ -16,6 +16,7 @@ local masks =
 -- Event id for cancel/nothing
 local cancel_result = 0x40000000;
 local cancel_result_seq = string.char(0x00, 0x00, 0x00, 0x40);
+local cancel_result_tp_enabled = true;
 
 -- Replace the third char (0x02, 0x00, 0xXX, 0x00) with the hex value of the homepoint index located here:
 -- https://github.com/DarkstarProject/darkstar/blob/master/scripts/globals/homepoint.lua
@@ -78,12 +79,15 @@ ashita.register_event('outgoing_packet', function(id, size, packet)
 				-- get the result id
 				local result_id = struct.unpack('I', packet, 0x08 + 1);
 
-				-- they canceled it, let's intercept
-				if (result_id == cancel_result) then
-					-- force the result to our desired destination
-					local new_packet = (packet:sub(0x00 + 1, 0x07 + 1) .. destination .. packet:sub(0x0C + 1)):totable();
-					AddOutgoingPacket(id, new_packet);
-					return true;
+				-- if tp on cancellation is turned on
+				if (cancel_result_tp_enabled == true) then
+					-- they canceled it, let's intercept
+					if (result_id == cancel_result) then
+						-- force the result to our desired destination
+						local new_packet = (packet:sub(0x00 + 1, 0x07 + 1) .. destination .. packet:sub(0x0C + 1)):totable();
+						AddOutgoingPacket(id, new_packet);
+						return true;
+					end
 				end
 			end
 		end
